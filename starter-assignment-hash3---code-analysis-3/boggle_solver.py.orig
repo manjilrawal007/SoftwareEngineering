@@ -1,0 +1,268 @@
+"""
+NAME: Manjil Rawal
+SID: @03086947
+
+A Python solution for the Boggle game solver.
+"""
+
+class Boggle:
+    def __init__(self, board, dictionary):
+        """
+        Initialize the Boggle game with the given board and dictionary.
+        """
+        if not self.is_valid_grid(board):
+            self.board = []
+            self.n = 0
+        else:
+            self.board = [[cell.upper() for cell in row] for row in board]
+            self.n = len(board)
+        
+        self.dictionary = set(word.upper() for word in dictionary)
+        self.prefixes = self.build_prefixes(self.dictionary)
+        self.directions = [
+            (-1, -1), (-1, 0), (-1, 1),
+            (0, -1),          (0, 1),
+            (1, -1),  (1, 0), (1, 1)
+        ]
+
+    def is_valid_grid(self, board):
+        """
+        Check if the input grid is valid.
+        """
+        if not board or not all(board):
+            return False
+        row_lengths = set(len(row) for row in board)
+        return len(row_lengths) == 1  # All rows should have the same length
+
+    def build_prefixes(self, dictionary):
+        """
+        Build a set of all possible prefixes from the dictionary.
+
+        :param dictionary: A set of valid words.
+        :return: A set containing all possible prefixes.
+        """
+        prefixes = set()
+        for word in dictionary:
+            for i in range(1, len(word)):
+                prefixes.add(word[:i])
+        return prefixes
+
+    def dfs(self, i, j, visited, current_word):
+        """
+        Perform Depth-First Search from the cell (i, j).
+        """
+        if i < 0 or i >= self.n:
+            return
+        if j < 0 or j >= len(self.board[i]):
+            return
+        if visited[i][j]:
+            return
+
+        current_word.append(self.board[i][j])
+        extra_chars = 0
+
+        if self.board[i][j] == 'Q':
+            current_word.append('U')
+            extra_chars += 1
+
+        if self.board[i][j] == 'S':
+            if len(current_word) >= 2 and current_word[-2] == 'Q':
+                pass
+            else:
+                current_word.append('T')
+                extra_chars += 1
+
+        word = ''.join(current_word)
+
+        if word not in self.prefixes and word not in self.dictionary:
+            for _ in range(1 + extra_chars):
+                if current_word:
+                    current_word.pop()
+            return
+
+        if len(word) >= 3 and word in self.dictionary:
+            self.found_words.add(word)
+
+        visited[i][j] = True
+
+        for di, dj in self.directions:
+            ni, nj = i + di, j + dj
+            self.dfs(ni, nj, visited, current_word)
+
+        visited[i][j] = False
+        for _ in range(1 + extra_chars):
+            if current_word:
+                current_word.pop()
+
+    def getSolution(self):
+        """
+        Find all valid words on the Boggle board based on the dictionary.
+        """
+        self.found_words = set()
+        if self.n == 0:
+            return []
+        visited = [[False for _ in row] for row in self.board]
+
+        for i in range(self.n):
+            for j in range(len(self.board[i])):
+                self.dfs(i, j, visited, [])
+
+        return sorted(list(self.found_words))
+
+def main():
+    """
+    Example usage of the Boggle class.
+    """
+    # Example grid that should pass 'test_isValid_Grid'
+    grid = [
+        ['D', 'E', 'F'],
+        ['E', 'A', 'B'],
+        ['E', 'B', 'C'],
+        ['E', 'C', 'B'],
+        ['E', 'D', 'B'],
+        ['E', 'F', 'B'],
+        ['E', 'G', 'H'],
+        ['E', 'H', 'I'],
+        ['E', 'I', 'H']
+    ]
+
+    dictionary = ['DEF', 'EAB', 'EBC', 'ECB', 'EDB', 'EFB', 'EGH', 'EHI', 'EIH']
+    mygame = Boggle(grid, dictionary)
+    print(sorted(mygame.getSolution()))
+if __name__ == "__main__":
+    main()
+
+# class Boggle:
+#     def __init__(self, grid=None, dictionary=None):
+#         """
+#         Constructor for the Boggle class.
+#         Initializes the grid and dictionary using setter methods if provided.
+#         """
+#         self.grid = []
+#         self.dictionary = set()
+#         self.found_words = set()
+#         self.directions = [(-1, -1), (-1, 0), (-1, 1),
+#                            (0, -1),          (0, 1),
+#                            (1, -1), (1, 0),  (1, 1)]  # 8 possible directions
+#         self.prefixes = set()
+        
+#         if grid:
+#             self.setGrid(grid)
+#         if dictionary:
+#             self.setDictionary(dictionary)
+
+#     def setGrid(self, grid):
+#         """
+#         Sets the Boggle grid.
+#         Converts all grid letters to uppercase to ensure case-insensitive matching.
+
+#         Parameters:
+#             grid (list of list of str): 2D array representing the Boggle grid.
+#         """
+#         # Ensure that each cell in the grid is uppercase
+#         self.grid = [[cell.upper() for cell in row] for row in grid]
+#         self.rows = len(self.grid)
+#         self.cols = len(self.grid[0]) if self.rows > 0 else 0
+
+#         # Ensure all rows have the same number of columns
+#         for row in self.grid:
+#             if len(row) != self.cols:
+#                 raise ValueError("All rows in the grid must have the same number of columns.")
+
+#     def setDictionary(self, dictionary):
+#         """
+#         Sets the dictionary of valid words.
+#         Converts all dictionary words to uppercase for case-insensitive matching.
+
+#         Parameters:
+#             dictionary (list of str): List of valid words.
+#         """
+#         self.dictionary = set(word.upper() for word in dictionary)
+#         # Build a set of all possible prefixes
+#         self.prefixes = set()
+#         for word in self.dictionary:
+#             for i in range(1, len(word) + 1):
+#                 self.prefixes.add(word[:i])
+
+#     def getSolution(self):
+#         """
+#         Finds and returns all valid words from the grid that are present in the dictionary.
+
+#         Returns:
+#             list of str: List of found valid words.
+#         """
+#         self.found_words.clear()  # Reset found words before searching
+#         if self.rows == 0 or self.cols == 0:
+#             return []
+#         for i in range(self.rows):
+#             for j in range(self.cols):
+#                 self._search_word(i, j, "", set())  # Start DFS from each cell
+#         return sorted(list(self.found_words))
+
+#     def _search_word(self, row, col, prefix, visited):
+#         """
+#         Recursive helper function to perform Depth-First Search (DFS) for word finding.
+
+#         Parameters:
+#             row (int): Current row index in the grid.
+#             col (int): Current column index in the grid.
+#             prefix (str): Current prefix built from the grid letters.
+#             visited (set of tuple): Set of visited grid positions to avoid reuse.
+#         """
+#         # Check for out-of-bounds indices or if the cell is already visited
+#         if not (0 <= row < self.rows and 0 <= col < self.cols) or (row, col) in visited:
+#             return
+
+#         current_cell = self.grid[row][col]
+
+#         # Handle special tiles "QU" and "ST"
+#         if current_cell == "QU":
+#             new_prefix = prefix + "QU"
+#         elif current_cell == "ST":
+#             new_prefix = prefix + "ST"
+#         else:
+#             new_prefix = prefix + current_cell
+
+#         # If the new prefix is not a valid prefix in any word, prune this path
+#         if new_prefix not in self.prefixes:
+#             return
+
+#         # Mark the current cell as visited
+#         visited.add((row, col))
+
+#         # If the new prefix is a valid word, add to found words
+#         if len(new_prefix) >= 3 and new_prefix in self.dictionary:
+#             self.found_words.add(new_prefix)
+
+#         # Explore all adjacent cells
+#         for direction in self.directions:
+#             new_row, new_col = row + direction[0], col + direction[1]
+#             self._search_word(new_row, new_col, new_prefix, visited)
+
+#         # Backtrack: unmark the current cell as visited
+#         visited.remove((row, col))
+
+
+# def main():
+#     """
+#     Main function to execute the Boggle solver.
+#     Initializes the grid and dictionary, creates a Boggle instance, and prints the solution.
+#     """
+#     grid = [["T", "W", "Y", "R"],
+#             ["E", "N", "P", "H"], 
+#             ["G", "Z", "Qu", "R"],
+#             ["O", "N", "T", "A"]]
+
+#     dictionary = ["art", "ego", "gent", "get", "net", "new", "newt", 
+#                   "prat", "pry", "qua", "quart", "quartz", "rat", 
+#                   "tar", "tarp", "ten", "went", "wet"]
+
+#     mygame = Boggle()
+#     mygame.setGrid(grid)
+#     mygame.setDictionary(dictionary)
+#     solution = mygame.getSolution()
+#     print("Found words:", solution)
+
+
+# if __name__ == "__main__":
+#     main()
