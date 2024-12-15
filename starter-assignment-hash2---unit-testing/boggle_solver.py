@@ -1,191 +1,133 @@
-import unittest
-from boggle_solver import Boggle
+"""
+NAME: Manjil Rawal
+SID: @03086947
 
-class TestSuite_Alg_Scalability_Cases(unittest.TestCase):
+A Python solution for the Boggle game solver.
+"""
 
-    def test_Normal_case_3x3(self):
-        grid = [["A", "B", "C"],
-                ["D", "E", "F"],
-                ["G", "H", "I"]]
-        dictionary = ["ABC", "ABDE", "CFI", "AEI", "CEG"]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = ["ABC", "ABDE", "CFI"]
-        self.assertEqual(sorted(solution), sorted(expected))
+class Boggle:
+    def __init__(self, board, dictionary):
+        """
+        Initialize the Boggle game with the given board and dictionary.
+        """
+        if not self.is_valid_grid(board):
+            self.board = []
+            self.n = 0
+        else:
+            self.board = [[cell.upper() for cell in row] for row in board]
+            self.n = len(board)
+        
+        self.dictionary = set(word.upper() for word in dictionary)
+        self.prefixes = self.build_prefixes(self.dictionary)
+        self.directions = [
+            (-1, -1), (-1, 0), (-1, 1),
+            (0, -1),          (0, 1),
+            (1, -1),  (1, 0), (1, 1)
+        ]
 
-    def test_Normal_case_5x5(self):
-        grid = [["T", "E", "S", "T", "S"],
-                ["A", "B", "C", "D", "E"],
-                ["F", "G", "H", "I", "J"],
-                ["K", "L", "M", "N", "O"],
-                ["P", "Q", "R", "S", "T"]]
-        dictionary = ["TESTS", "ABCDE", "FGHIJ", "KLMNO", "PQRST"]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = ["TESTS", "ABCDE", "FGHIJ", "KLMNO", "PQRST"]
-        self.assertEqual(sorted(solution), sorted(expected))
+    def is_valid_grid(self, board):
+        """
+        Check if the input grid is valid.
+        """
+        if not board or not all(board):
+            return False
+        row_lengths = set(len(row) for row in board)
+        return len(row_lengths) == 1  # All rows should have the same length
 
-    def test_Normal_case_10x10(self):
-        grid = [list("ABCDEFGHIJ") for _ in range(10)]
-        dictionary = ["ABCDEFGHIJABCDEFGHIJ"]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = ["ABCDEFGHIJABCDEFGHIJ"]
-        self.assertEqual(sorted(solution), sorted(expected))
+    def build_prefixes(self, dictionary):
+        """
+        Build a set of all possible prefixes from the dictionary.
 
-class TestSuite_Simple_Edge_Cases(unittest.TestCase):
+        :param dictionary: A set of valid words.
+        :return: A set containing all possible prefixes.
+        """
+        prefixes = set()
+        for word in dictionary:
+            for i in range(1, len(word)):
+                prefixes.add(word[:i])
+        return prefixes
 
-    def test_SquareGrid_case_1x1(self):
-        grid = [["A"]]
-        dictionary = ["A", "B", "C"]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = []  # No words of length >= 3
-        self.assertEqual(sorted(solution), sorted(expected))
+    def dfs(self, i, j, visited, current_word):
+        """
+        Perform Depth-First Search from the cell (i, j).
+        """
+        if i < 0 or i >= self.n:
+            return
+        if j < 0 or j >= len(self.board[i]):
+            return
+        if visited[i][j]:
+            return
 
-    def test_EmptyGrid_case_0x0(self):
-        grid = []
-        dictionary = ["HELLO", "THERE"]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = []
-        self.assertEqual(sorted(solution), sorted(expected))
+        current_word.append(self.board[i][j])
+        extra_chars = 0
 
-    def test_Word_That_Take_The_Entire_Grid(self):
-        grid = [["A", "B", "S", "T"],
-                ["E", "M", "I", "O"],
-                ["U", "S", "N", "E"],
-                ["S", "S", "E", "S"]]
-        dictionary = ["ABSTEMIOUSNESSES", "SESSENSUOIMETSBA"]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = []
-        self.assertEqual(sorted(solution), sorted(expected))
+        if self.board[i][j] == 'Q':
+            current_word.append('U')
+            extra_chars += 1
 
+        if self.board[i][j] == 'S':
+            if len(current_word) >= 2 and current_word[-2] == 'Q':
+                pass
+            else:
+                current_word.append('T')
+                extra_chars += 1
 
-class TestSuite_Qu(unittest.TestCase):
+        word = ''.join(current_word)
 
-    def test_isValid_Grid(self):
-        grid = [["Qu", "Qu"], ["Qu", "Qu"]]
-        dictionary = ["QUQU", "QUQUQU"]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = ["QUQU", "QUQUQU"]
-        self.assertEqual(sorted(solution), sorted(expected))
+        if word not in self.prefixes and word not in self.dictionary:
+            for _ in range(1 + extra_chars):
+                if current_word:
+                    current_word.pop()
+            return
 
-    def test_Simple_Qu_Case(self):
-        grid = [["A", "Qu"], ["B", "C"]]
-        dictionary = ["AQU", "QUA", "QUAC", "AQUC"]
-        mygame = Boggle(grid, dictionary)
-        solution = sorted(mygame.getSolution())
-        expected = sorted(["AQU", "AQUC"])
-        self.assertEqual(expected, solution)
+        if len(word) >= 3 and word in self.dictionary:
+            self.found_words.add(word)
 
-    def test_Q_without_U_Case(self):
-        grid = [["Q", "A"], ["B", "C"]]
-        dictionary = ["QA", "QAB", "QAC"]
-        mygame = Boggle(grid, dictionary)
-        solution = sorted(mygame.getSolution())
-        expected = sorted(["QA", "QAB", "QAC"])
-        self.assertEqual(expected, solution)
+        visited[i][j] = True
 
-    def test_Simple_St_Case(self):
-        grid = [["St", "A"], ["B", "C"]]
-        dictionary = ["STAB", "STACK", "STAR"]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = ["STAB"]
-        self.assertEqual(sorted(solution), sorted(expected))
+        for di, dj in self.directions:
+            ni, nj = i + di, j + dj
+            self.dfs(ni, nj, visited, current_word)
 
-class TestSuite_Complete_Coverage(unittest.TestCase):
+        visited[i][j] = False
+        for _ in range(1 + extra_chars):
+            if current_word:
+                current_word.pop()
 
-    def test_All_Directions(self):
-        grid = [["A", "B", "C"],
-                ["D", "E", "F"],
-                ["G", "H", "I"]]
-        dictionary = ["ABE", "CFI", "ADG", "CEG", "AEI", "BDH", "GDA"]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = ["ABE", "CFI", "ADG", "CEG", "AEI"]
-        self.assertEqual(sorted(solution), sorted(expected))
+    def getSolution(self):
+        """
+        Find all valid words on the Boggle board based on the dictionary.
+        """
+        self.found_words = set()
+        if self.n == 0:
+            return []
+        visited = [[False for _ in row] for row in self.board]
 
-    def test_Winding_Path(self):
-        grid = [["A", "B", "C"],
-                ["H", "G", "D"],
-                ["I", "F", "E"]]
-        dictionary = ["ABCDEFGHI"]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = ["ABCDEFGHI"]
-        self.assertEqual(sorted(solution), sorted(expected))
+        for i in range(self.n):
+            for j in range(len(self.board[i])):
+                self.dfs(i, j, visited, [])
 
-    def test_Returns_All_Matching_Words(self):
-        grid = [["A", "B"], ["C", "D"]]
-        dictionary = ["AB", "ABC", "ABCD", "ABDC"]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = ["ABCD", "ABDC"]
-        self.assertEqual(sorted(solution), sorted(expected))
+        return sorted(list(self.found_words))
 
-    def test_Recursive_Steps(self):
-        grid = [["A", "A"], ["A", "A"]]
-        dictionary = ["AAA", "AAAA"]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = ["AAA", "AAAA"]
-        self.assertEqual(sorted(solution), sorted(expected))
+def main():
+    """
+    Example usage of the Boggle class.
+    """
+    # Example grid that should pass 'test_isValid_Grid'
+    grid = [
+        ['D', 'E', 'F'],
+        ['E', 'A', 'B'],
+        ['E', 'B', 'C'],
+        ['E', 'C', 'B'],
+        ['E', 'D', 'B'],
+        ['E', 'F', 'B'],
+        ['E', 'G', 'H'],
+        ['E', 'H', 'I'],
+        ['E', 'I', 'H']
+    ]
 
-    def test_Pathologically_Slow(self):
-        grid = [["A", "A"], ["A", "A"]]
-        dictionary = ["A" * 10]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = ["AAAAAAAAAA"]
-        self.assertEqual(sorted(solution), sorted(expected))
-
-class TestSuite_Simple_Edge_Cases_Extended(unittest.TestCase):
-
-    def test_Duplicate_Letters_Immediate_Loop(self):
-        grid = [["A", "A", "A"],
-                ["A", "A", "A"],
-                ["A", "A", "A"]]
-        dictionary = ["AAA"]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = ["AAA"]
-        self.assertEqual(sorted(solution), sorted(expected))
-
-
-    def test_Words_Cant_Cell_More_Than_Once(self):
-        grid = [["A", "B", "C"],
-                ["D", "E", "F"],
-                ["G", "H", "I"]]
-        dictionary = ["ABA", "BAB", "CAC"]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = []  # Words reuse cells, which is invalid
-        self.assertEqual(sorted(solution), sorted(expected))
-
-    def test_Words_That_Only_Are_3_or_More_Chars(self):
-        grid = [["A", "B", "C"],
-                ["D", "E", "F"],
-                ["G", "H", "I"]]
-        dictionary = ["AB", "ABC", "ABCD", "ABCDE"]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = ["ABC", "ABCD", "ABCDE"]
-        self.assertEqual(sorted(solution), sorted(expected))
-
-    def test_No_Words_In_Grid(self):
-        grid = [["X", "Y", "Z"],
-                ["Q", "W", "E"],
-                ["R", "T", "Y"]]
-        dictionary = ["APPLE", "BANANA", "CHERRY"]
-        mygame = Boggle(grid, dictionary)
-        solution = mygame.getSolution()
-        expected = []
-        self.assertEqual(sorted(solution), sorted(expected))
-
-# Ensure that the test runner runs all tests
-if __name__ == '__main__':
-    unittest.main()
+    dictionary = ['DEF', 'EAB', 'EBC', 'ECB', 'EDB', 'EFB', 'EGH', 'EHI', 'EIH']
+    mygame = Boggle(grid, dictionary)
+    print(sorted(mygame.getSolution()))
+if __name__ == "__main__":
+    main()
